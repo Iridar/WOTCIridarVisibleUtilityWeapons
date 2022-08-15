@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Default" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Guid>8ed57ffa-ccad-423f-83a2-a484fba87b5c</Guid>
+    <Name>WOTCIridarVisibleUtilityWeapons</Name>
+    <Description>Makes utility items, such as Medikits and Grenades, visible in both Armory and Tactical.</Description>
+    <SteamPublishID>0</SteamPublishID>
+    <AssemblyName>WOTCIridarVisibleUtilityWeapons</AssemblyName>
+    <RootNamespace>WOTCIridarVisibleUtilityWeapons</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Config\" />
+    <Folder Include="Src\" />
+    <Folder Include="Src\WOTCIridarVisibleUtilityWeapons\" />
+    <Folder Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ReadMe.txt" />
+    <Content Include="ModPreview.jpg" />
+    <Content Include="Config\XComEditor.ini" />
+    <Content Include="Config\XComEngine.ini" />
+    <Content Include="Config\XComGame.ini" />
+    <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\AnimNotify_ScriptedItemAttach.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\Help.uc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\X2DLCInfo_WOTCIridarVisibleUtilityWeapons.uc" />
+    <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\X2EventListener_VisibleWeapons.uc">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+  <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
+</Project>
