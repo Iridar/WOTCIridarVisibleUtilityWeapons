@@ -1,11 +1,16 @@
 class Help extends Object abstract config(WOTCIridarVisibleUtilityWeaponsCache);
 
 const MAX_NUM_GRENADE_CLIPS = 4;
-//const MAX_NUM_HIPS = 3;
 
 var config array<name> ItemsUseGrenadeClip;
-//var config array<name> ItemsUseHip;
-var config array<name> ItemsNotUseGrenadeClipOrHip;
+var config array<name> ItemsNotUseGrenadeClip;
+
+struct UnitSocketInfoStruct
+{
+	var int ObjectID;
+	var int NumSockets;
+};
+var config array<UnitSocketInfoStruct> UnitSocketInfos;
 
 static final function name GetItemDefaultSocket(const XComGameState_Item ItemState, const XComGameState_Unit UnitState)
 {
@@ -17,14 +22,10 @@ static final function name GetItemDefaultSocket(const XComGameState_Item ItemSta
 	if (default.ItemsUseGrenadeClip.Find(ItemState.GetMyTemplateName()) != INDEX_NONE)
 		return 'GrenadeClip';
 
-	//if (default.ItemsUseHip.Find(ItemState.GetMyTemplateName()) != INDEX_NONE)
-	//	return 'R_Hip';
-
-	if (default.ItemsNotUseGrenadeClipOrHip.Find(ItemState.GetMyTemplateName()) != INDEX_NONE)
-		return ''; // We actually don't care about other default sockets.
+	if (default.ItemsNotUseGrenadeClip.Find(ItemState.GetMyTemplateName()) != INDEX_NONE)
+		return 'NotGrenadeClip';
 
 	// #2. Cache miss, find it out the hard way.
-
 	EqTemplate = X2EquipmentTemplate(ItemState.GetMyTemplate());
 	if (EqTemplate == none)
 		return '';
@@ -44,19 +45,58 @@ static final function name GetItemDefaultSocket(const XComGameState_Item ItemSta
 		default.ItemsUseGrenadeClip.AddItem(EqTemplate.DataName);
 		StaticSaveConfig();
 		return 'GrenadeClip';
-	//case 'R_Hip':
-	//	default.ItemsUseHip.AddItem(EqTemplate.DataName);
-	//	StaticSaveConfig();
-	//	return 'R_Hip';
 	default:
-		default.ItemsNotUseGrenadeClipOrHip.AddItem(EqTemplate.DataName);
+		default.ItemsNotUseGrenadeClip.AddItem(EqTemplate.DataName);
 		StaticSaveConfig();
-		return '';
+		return 'NotGrenadeClip';
 	}
 	
 	return'';
 }
 
+
+static final function name FindFreeGrenadeClipSocket(const XComGameState_Unit UnitState)
+{
+	local name SocketName;
+	local UnitSocketInfoStruct SocketInfo;
+	local int Index;
+
+	Index = default.UnitSocketInfos.Find('ObjectID', UnitState.ObjectID);
+	if (Index == INDEX_NONE)
+	{
+		// No cached entry for this unit. Create a new one.
+		SocketInfo.ObjectID = UnitState.ObjectID;
+		SocketInfo.NumSockets = 1;
+		default.UnitSocketInfos.AddItem(SocketInfo);
+		return 'GrenadeClip1';
+	}
+	else
+	{
+		// Unit has a cached entry.
+
+		// Are there free sockets remaining?
+		if (default.UnitSocketInfos[Index].NumSockets < MAX_NUM_GRENADE_CLIPS)
+		{
+			// Yes, give one, save.
+			SocketName = name('GrenadeClip' $ default.UnitSocketInfos[Index].NumSockets);
+
+			default.UnitSocketInfos[Index].NumSockets++;
+
+			return SocketName;
+		}
+		else
+		{
+			// No free sockets.
+			return '';
+		}
+	}
+}
+static final function ResetGrenadeClipSocketCache()
+{
+	default.UnitSocketInfos.Length = 0;
+}
+
+/*
 static final function int FindFreeSocketIndex(const XComGameState_Unit UnitState, const name UnitValuePrefix)
 {
 	local UnitValue	UV;
@@ -106,13 +146,11 @@ static private function int GetMaxSocketValue(const name SocketName)
 	{
 	case 'GrenadeClip':
 		return MAX_NUM_GRENADE_CLIPS;
-	//case 'R_Hip':
-	//	return MAX_NUM_HIPS;
 	default:
 		return INDEX_NONE;	
 	}
 	return INDEX_NONE;	
-}
+}*/
 
 /*
 static private function int GetItemStateIndex(const XComGameState_Item ItemState)

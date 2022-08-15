@@ -27,9 +27,6 @@
       <SubType>Content</SubType>
     </Content>
     <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\X2DLCInfo_WOTCIridarVisibleUtilityWeapons.uc" />
-    <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\X2EventListener_VisibleWeapons.uc">
-      <SubType>Content</SubType>
-    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildLocalExtensionPath)\XCOM2.targets" />
 </Project>

@@ -2,10 +2,12 @@ class X2DLCInfo_WOTCIridarVisibleUtilityWeapons extends X2DownloadableContentInf
 
 var config array<name> ExcludeItems;
 
-var private SkeletalMeshSocket GrenadeClip0Socket;
 var private SkeletalMeshSocket GrenadeClip1Socket;
 var private SkeletalMeshSocket GrenadeClip2Socket;
 var private SkeletalMeshSocket GrenadeClip3Socket;
+var private SkeletalMeshSocket GrenadeClip4Socket;
+
+
 
 // TODO: Exclude SPARKs and NOn-soldeirs
 
@@ -19,20 +21,31 @@ static event OnPostTemplatesCreated()
 		CHHelpersObj.AddShouldDisplayMultiSlotItemInStrategyCallback(ShouldDisplayMultiSlotItemInStrategyDelegate, 50);
 		CHHelpersObj.AddShouldDisplayMultiSlotItemInTacticalCallback(ShouldDisplayMultiSlotItemInTacticalDelegate, 50);
 	}
+	class'Help'.static.ResetGrenadeClipSocketCache();
 }
 
 static function string DLCAppendSockets(XComUnitPawn Pawn)
 {
 	local array<SkeletalMeshSocket> NewSockets;
-
-	NewSockets.AddItem(default.GrenadeClip0Socket);
+	
 	NewSockets.AddItem(default.GrenadeClip1Socket);
 	NewSockets.AddItem(default.GrenadeClip2Socket);
 	NewSockets.AddItem(default.GrenadeClip3Socket);
+	NewSockets.AddItem(default.GrenadeClip4Socket);
 
 	Pawn.Mesh.AppendSockets(NewSockets, true);
 
 	return "";
+}
+
+static function UpdateAnimations(out array<AnimSet> CustomAnimSets, XComGameState_Unit UnitState, XComUnitPawn Pawn)
+{
+	local SkeletalMeshSocket Socket;
+
+	foreach Pawn.Mesh.Sockets(Socket)
+	{
+		`LOG(UnitState.GetFullName() @ Socket.SocketName @ Socket.BoneName @ string(Socket.Outer));
+	}
 }
 
 
@@ -53,7 +66,6 @@ static private function bool ShouldDisplayUtilitySlotItem(XComGameState_Item Ite
 	local X2WeaponTemplate		WeaponTemplate;
 	local XComGameState_Unit	UnitState;
 	local name					SocketName;
-	local int					Index;
 
 	// Do nothing for non-utility items or excluded items.
 	if (ItemState.InventorySlot != eInvSlot_Utility || default.ExcludeItems.Find(ItemState.GetMyTemplateName()) != INDEX_NONE)
@@ -71,32 +83,39 @@ static private function bool ShouldDisplayUtilitySlotItem(XComGameState_Item Ite
 	if (SocketName == '')
 		return false;
 
-	Index = class'Help'.static.FindItemSocketIndex(ItemState, UnitState, SocketName);
-	if (Index != INDEX_NONE)
+	if (SocketName == 'GrenadeClip')
 	{
-		`LOG("Displaying item:" @ ItemState.GetMyTemplateName() @ "in socket:" @ SocketName);
+		//Index = class'Help'.static.FindItemSocketIndex(ItemState, UnitState, SocketName);
+		//if (Index != INDEX_NONE)
+		//{
+			`LOG("Displaying item:" @ ItemState.GetMyTemplateName() @ "in socket:" @ SocketName);
+			bDisplayItem = 1;
+		//}
+	}
+	else
+	{
 		bDisplayItem = 1;
 	}
-	
+
 	//	Return false to allow following Delegates to override the output of this delegate.
 	return false;
 }
 
 static function WeaponInitialized(XGWeapon WeaponArchetype, XComWeapon Weapon, optional XComGameState_Item InternalWeaponState = none)
 {
-    Local XComGameState_Item	ItemState;
-	local XComGameState_Unit	UnitState;
-	local int					Index;
-	local AnimSet				Set;
-	local AnimSequence			Sequence;
-
+    Local XComGameState_Item			ItemState;
+	local XComGameState_Unit			UnitState;
+	local name							NewSocketName;
+	local AnimSet						Set;
+	local AnimSequence					Sequence;
 	local XComAnimNotify_ItemAttach		ItemAttach;
 	local AnimNotify_ScriptedItemAttach ScriptedItemAttach;
 	local AnimNotifyEvent				NotifyEvent;
 	local bool							bNotifyFound;
 	local int i;
 
-	if (Weapon.DefaultSocket != 'GrenadeClip' /* && Weapon.DefaultSocket != 'R_Hip'*/)
+	// #1. Initial checks
+	if (Weapon.DefaultSocket != 'GrenadeClip')
 		return;
 
     if (InternalWeaponState == none) 
@@ -113,19 +132,21 @@ static function WeaponInitialized(XGWeapon WeaponArchetype, XComWeapon Weapon, o
 	if (UnitState == none || UnitState.InventoryItems.Find('ObjectID', ItemState.ObjectID) == INDEX_NONE)
 		return;
 
-	Index = class'Help'.static.FindItemSocketIndex(ItemState, UnitState, Weapon.DefaultSocket);
-	if (Index == INDEX_NONE)
+	// #2. THis is a grenade. Find a free socket for it.
+	NewSocketName = class'Help'.static.FindFreeGrenadeClipSocket(UnitState);
+	if (NewSocketName == '')
 		return;
-	
-	Weapon.DefaultSocket = name(Weapon.DefaultSocket $ Index);
+
+	Weapon.SheathSocket = Weapon.DefaultSocket;
+	Weapon.DefaultSocket = NewSocketName;
+
+	`LOG("WeaponInit: moving item:" @ ItemState.GetMyTemplateName() @ "to socket:" @ NewSocketName);
 
 	foreach Weapon.CustomUnitPawnAnimsets(Set)
 	{
 		foreach Set.Sequences(Sequence)
 		{
-			if (InStr(Sequence.SequenceName, "FF_Grenade") == INDEX_NONE &&
-				InStr(Sequence.SequenceName, "FF_GrenadeUnderhand") == INDEX_NONE &&
-				InStr(Sequence.SequenceName, Weapon.WeaponFireAnimSequenceName) == INDEX_NONE &&
+			if (InStr(Sequence.SequenceName, Weapon.WeaponFireAnimSequenceName) == INDEX_NONE &&
 				InStr(Sequence.SequenceName, Weapon.WeaponFireKillAnimSequenceName) == INDEX_NONE)
 			{
 				continue;
@@ -143,14 +164,12 @@ static function WeaponInitialized(XGWeapon WeaponArchetype, XComWeapon Weapon, o
 			if (!bNotifyFound)
 			{
 				ItemAttach = new class'XComAnimNotify_ItemAttach';
-				ItemAttach.ToSocket = 'GrenadeClip';
 				NotifyEvent.Time = 0.05f;
                 NotifyEvent.Notify = ItemAttach;
                 Sequence.Notifies.InsertItem(0, NotifyEvent);
 
 				ScriptedItemAttach = new class'AnimNotify_ScriptedItemAttach';
 				ScriptedItemAttach.ItemAttach = ItemAttach;
-				ScriptedItemAttach.FromSocket = Weapon.DefaultSocket;
 				NotifyEvent.Time = 0;
                 NotifyEvent.Notify = ScriptedItemAttach;
                 Sequence.Notifies.InsertItem(0, NotifyEvent);
@@ -159,135 +178,16 @@ static function WeaponInitialized(XGWeapon WeaponArchetype, XComWeapon Weapon, o
 	}
 }
 
-static function UpdateAnimations(out array<AnimSet> CustomAnimSets, XComGameState_Unit UnitState, XComUnitPawn Pawn)
-{
-    local AnimSet Set;
-    local AnimSequence Sequence;
-    local AnimNotifyEvent NotifyEvent;
-    local AnimNotify_FireWeaponVolley TestNotify;
-    local int i;
-
-    foreach Pawn.Mesh.AnimSets(Set)
-    {
-        foreach Set.Sequences(Sequence)
-        {
-            if (InStr(Sequence.SequenceName, "FF_Grenade") != INDEX_NONE ||
-				InStr(Sequence.SequenceName, "FF_GrenadeUnderhand") != INDEX_NONE)
-            {
-                `log(`showvar(Sequence.SequenceName));
-                for (i = 0; i<Sequence.Notifies.Length; i++)
-                {
-                    TestNotify = AnimNotify_FireWeaponVolley(Sequence.Notifies[i].Notify);
-                    if (TestNotify==none) continue;
-                    if (TestNotify!=none && TestNotify.PerkAbilityName == "MCDetonate") return;
-                    if (TestNotify!=none && TestNotify.PerkAbilityName == "Fuse")
-                    {
-                        `log(`showvar(TestNotify.PerkAbilityName));
-                        `log(`showvar(TestNotify.bPerkVolley));
-                        NotifyEvent.Time = Sequence.Notifies[i].Time;
-                        NotifyEvent.Notify = new class'AnimNotify_FireWeaponVolley'(TestNotify);
-                        AnimNotify_FireWeaponVolley(NotifyEvent.Notify).PerkAbilityName = "MCDetonate";
-                        `log(`showvar(AnimNotify_FireWeaponVolley(NotifyEvent.Notify).bPerkVolley));
-                        Sequence.Notifies.InsertItem(i++, NotifyEvent);
-                        //break;
-                    }
-                }
-            }
-        }
-    }
-}
-
-/// <summary>
-/// This method is run when the player loads a saved game directly into Strategy while this DLC is installed
-/// </summary>
-static event OnLoadedSavedGameToStrategy()
-{
-	local XComGameState NewGameState;
-	local XComGameState_HeadquartersXCom XComHQ;
-
-	XComHQ = `XCOMHQ;
-
-	NewGameState = class'XComGameStateContext_ChangeContainer'.static.CreateChangeState();
-	CreateItemSocketUnitValues(XComHQ, NewGameState);
-	if (NewGameState.GetNumGameStateObjects() > 0)
-	{
-		`XCOMHISTORY.AddGameStateToHistory(NewGameState);
-	}
-	else
-	{
-		`XCOMHISTORY.CleanupPendingGameState(NewGameState);
-	}
-}
-
-/// <summary>
-/// Called when the player starts a new campaign while this DLC / Mod is installed. When a new campaign is started the initial state of the world
-/// is contained in a strategy start state. Never add additional history frames inside of InstallNewCampaign, add new state objects to the start state
-/// or directly modify start state objects
-/// </summary>
-static event InstallNewCampaign(XComGameState StartState)
-{
-	local XComGameState_HeadquartersXCom XComHQ;
-
-	foreach StartState.IterateByClassType(class'XComGameState_HeadquartersXCom', XComHQ)
-	{
-		break;
-	}
-	if (XComHQ != none)
-	{
-		CreateItemSocketUnitValues(XComHQ, StartState);
-	}
-}
-
-static private function CreateItemSocketUnitValues(XComGameState_HeadquartersXCom XComHQ, XComGameState NewGameState)
-{
-	local XComGameState_Item	ItemState;
-	local XComGameState_Unit	UnitState;
-	local name					SocketName;
-	local XComGameState			NewGameState;
-	local name					UVName;
-	local int					Index;
-
-	ItemState = XComGameState_Item(EventData);
-	if (ItemState == none || ItemState.bMergedOut)
-		return ELR_NoInterrupt;
-
-	UnitState = XComGameState_Unit(EventSource);
-	if (UnitState == none || UnitState.InventoryItems.Find('ObjectID', ItemState.ObjectID) == INDEX_NONE)
-		return ELR_NoInterrupt;
-
-	SocketName = class'Help'.static.GetItemDefaultSocket(ItemState, UnitState);
-	if (SocketName == '')
-		return ELR_NoInterrupt;
-
-	Index = class'Help'.static.FindFreeSocketIndex(UnitState, SocketName);
-	if (Index != INDEX_NONE)
-	{
-		UVName = name(SocketName $ Index);
-
-		`LOG("Equipped item:" @ ItemState.GetMyTemplateName() @ "into socket:" @ UVName);
-
-		UnitState = XComGameState_Unit(NewGameState.ModifyStateObject(UnitState.Class, UnitState.ObjectID));
-		UnitState.SetUnitFloatValue(UVName, ItemState.ObjectID, eCleanup_Never);
-	}
-
-    return ELR_NoInterrupt;
-}
-
 // TODO: Debug only
 static function GetNumUtilitySlotsOverride(out int NumUtilitySlots, XComGameState_Item EquippedArmor, XComGameState_Unit UnitState, XComGameState CheckGameState)
 {
 	NumUtilitySlots = 5;
 }
 
+
+
 defaultproperties
 {
-	Begin Object Class=SkeletalMeshSocket Name=DefaultGrenadeClip0Socket
-		SocketName = "GrenadeClip0"
-		BoneName = "Pelvis"
-		RelativeLocation=(X=0.0f,Y=-5.0f,Z=20.0f)
-	End Object
-	GrenadeClip0Socket = DefaultGrenadeClip0Socket;
-
 	Begin Object Class=SkeletalMeshSocket Name=DefaultGrenadeClip1Socket
 		SocketName = "GrenadeClip1"
 		BoneName = "Pelvis"
@@ -308,6 +208,14 @@ defaultproperties
 		RelativeLocation=(X=0.0f,Y=10.0f,Z=20.0f)
 	End Object
 	GrenadeClip3Socket = DefaultGrenadeClip3Socket;
+
+	Begin Object Class=SkeletalMeshSocket Name=DefaultGrenadeClip4Socket
+		SocketName = "GrenadeClip4"
+		BoneName = "Pelvis"
+		RelativeLocation=(X=0.0f,Y=-5.0f,Z=20.0f)
+	End Object
+	GrenadeClip4Socket = DefaultGrenadeClip4Socket;
 }
+
 
 
