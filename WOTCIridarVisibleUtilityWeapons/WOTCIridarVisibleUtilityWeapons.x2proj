@@ -3,7 +3,9 @@
   <PropertyGroup>
     <Guid>8ed57ffa-ccad-423f-83a2-a484fba87b5c</Guid>
     <Name>WOTCIridarVisibleUtilityWeapons</Name>
-    <Description>Makes utility items, such as Medikits and Grenades, visible in both Armory and Tactical.</Description>
+    <Description>Makes utility items, such as Medikits and Grenades, visible in both Armory and Tactical.
+
+tags= war of the chosen</Description>
     <SteamPublishID>0</SteamPublishID>
     <AssemblyName>WOTCIridarVisibleUtilityWeapons</AssemblyName>
     <RootNamespace>WOTCIridarVisibleUtilityWeapons</RootNamespace>
@@ -20,6 +22,9 @@
     <Content Include="Config\XComEditor.ini" />
     <Content Include="Config\XComEngine.ini" />
     <Content Include="Config\XComGame.ini" />
+    <Content Include="ReadMe_rus.txt">
+      <SubType>Content</SubType>
+    </Content>
     <Content Include="Src\WOTCIridarVisibleUtilityWeapons\Classes\AnimNotify_ScriptedItemAttach.uc">
       <SubType>Content</SubType>
     </Content>

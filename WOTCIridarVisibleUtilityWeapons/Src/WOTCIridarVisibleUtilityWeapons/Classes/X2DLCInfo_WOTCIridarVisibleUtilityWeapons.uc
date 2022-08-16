@@ -18,6 +18,9 @@ var private SkeletalMeshSocket GrenadeClip3Socket_Female;
 var private SkeletalMeshSocket GrenadeClip4Socket_Female;
 var private SkeletalMeshSocket GrenadeClip5Socket_Female;
 
+// TODO: Manually spawn weapon mesh for merged out items?
+// TODO: cache default socket of all items to allow equipping only one item into each non-grenade socket.
+
 static event OnPostTemplatesCreated()
 {
 	local CHHelpers	CHHelpersObj;
