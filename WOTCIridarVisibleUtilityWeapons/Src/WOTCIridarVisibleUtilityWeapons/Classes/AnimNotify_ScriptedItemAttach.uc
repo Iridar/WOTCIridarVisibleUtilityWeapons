@@ -1,6 +1,6 @@
 class AnimNotify_ScriptedItemAttach extends AnimNotify_Scripted;
 
-// This Notify will instruct inlaid ItemAttach Notify to move the weapon mesh from weapon's new DefaultSocket to the weapon's old DefaultSocket,
+// This Notify will instruct the neighboring ItemAttach Notify to move the weapon mesh from weapon's new DefaultSocket to the weapon's old DefaultSocket,
 // which we store in the weapon's SheathSocket, since - hoping really hard there - grenades don't have sheath. Even if they did, 
 // sheath are usually done as default attachment, since this field in the weapon archetype is broken.
 

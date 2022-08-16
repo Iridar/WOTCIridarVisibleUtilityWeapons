@@ -1,6 +1,6 @@
 class Help extends Object abstract config(WOTCIridarVisibleUtilityWeaponsCache);
 
-const MAX_NUM_GRENADE_CLIPS = 4;
+var config(Game) int MAX_NUM_GRENADE_CLIPS;
 
 var config array<name> ItemsUseGrenadeClip;
 var config array<name> ItemsNotUseGrenadeClip;
@@ -8,8 +8,8 @@ var config array<name> ItemsNotUseGrenadeClip;
 static private function int GetItemStateIndex(const XComGameState_Item ItemState)
 {
 	local XComGameState_Unit		UnitState;
-	local array<XComGameState_Item> UtilityItems;
-	local int						Index;
+	local array<XComGameState_Item> InventoryItems;
+	local XComGameState_Item		InventoryItem;
 	local int						NumGrenadeClipItems;
 
 	//`LOG(GetScriptTrace());
@@ -19,15 +19,16 @@ static private function int GetItemStateIndex(const XComGameState_Item ItemState
 	if (UnitState == none)
 		return INDEX_NONE;
 
-	UtilityItems = UnitState.GetAllItemsInSlot(eInvSlot_Utility);
-	for (Index = 0; Index < UtilityItems.Length; Index++)
+	// Have to get all items instead of just utility items to take into account grenade pocket and all other potential inventory slots
+	InventoryItems = UnitState.GetAllInventoryItems(, true); // Exclude PCS
+	foreach InventoryItems(InventoryItem)
 	{
-		if (IsItemDefaultSocketGrenadeClip(UtilityItems[Index]))
+		if (IsItemDefaultSocketGrenadeClip(InventoryItem))
 		{
 			NumGrenadeClipItems++;
 		}
 
-		if (UtilityItems[Index].ObjectID == ItemState.ObjectID)
+		if (InventoryItem.ObjectID == ItemState.ObjectID)
 		{
 			//`LOG("Index:" @ NumGrenadeClipItems);
 			return NumGrenadeClipItems;
@@ -45,7 +46,7 @@ static final function name FindGrenadeClipSocketForItem(const XComGameState_Item
 
 	Index = GetItemStateIndex(ItemState);
 	//`LOG("Item index:" @ Index);
-	if (Index != INDEX_NONE && Index <= MAX_NUM_GRENADE_CLIPS)
+	if (Index != INDEX_NONE && Index <= default.MAX_NUM_GRENADE_CLIPS)
 	{
 		//`LOG("Returning socket:" @ name('GrenadeClip' $ Index));
 		return name('GrenadeClip' $ Index);
