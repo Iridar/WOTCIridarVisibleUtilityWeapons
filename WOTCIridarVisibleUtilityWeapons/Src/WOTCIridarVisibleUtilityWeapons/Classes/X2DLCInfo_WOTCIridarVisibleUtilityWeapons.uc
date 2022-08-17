@@ -225,10 +225,10 @@ static function UpdateAnimations(out array<AnimSet> CustomAnimSets, XComGameStat
 	}
 }
 
-static function GetNumUtilitySlotsOverride(out int NumUtilitySlots, XComGameState_Item EquippedArmor, XComGameState_Unit UnitState, XComGameState CheckGameState)
-{
-	NumUtilitySlots = 5;
-}
+//static function GetNumUtilitySlotsOverride(out int NumUtilitySlots, XComGameState_Item EquippedArmor, XComGameState_Unit UnitState, XComGameState CheckGameState)
+//{
+//	NumUtilitySlots = 5;
+//}
 
 
 defaultproperties
